@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link type="text/css" href="css/ui-darkness/jquery-ui-1.8.16.custom.css"
+	rel="stylesheet" />
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/jquery-ui.js"></script>
+<script type="text/javascript" src="js/jquery.graphite.js"></script>
+
+<title>Graphite Client</title>
+<script type="text/javascript">
+var refreshTime=1500;
+var periodMins=5;
+var fnUpdateGraph;
+var fnInitGraph;
+var graphsArray=[
+                 'stats.gauges.metricas.ale.test-gauge',
+                 'stats.metricas.ale.test-counter',
+                 [
+                  "alias(stats.timers.metricas.ale.test-timer.lower,'min')",
+                  "&target=alias(stats.timers.metricas.ale.test-timer.count,'count')",
+                  "&target=alias(stats.timers.metricas.ale.test-timer.upper,'max')"
+                  ]
+    			];
+var actualGraph=0;
+$(document).ready(function() {
+	$.fn.graphite.defaults.width = "450";
+	$.fn.graphite.defaults.height = "300";
+	$.fn.graphite.defaults.url = "http://216.75.13.13/render/";
+	//Inicializa el gráfico
+	fnInitGraph=function() {
+		$("#graph").graphite({
+			from : "-"+periodMins+"minutes",
+			colorList: "red,green,yellow",
+			target : [ graphsArray[actualGraph] ]
+		});
+	}
+
+	//Genera y actualiza el gráfico en pantalla
+	fnUpdateGraph=function() {
+		console.log('actualizando...');
+		$.fn.graphite.update($("#graph"), {
+			from : "-"+periodMins+"minutes",
+			lineWidth : "1"
+		});
+		setTimeout(fnUpdateGraph,refreshTime);
+	}
+	fnInitGraph();
+	setTimeout(fnUpdateGraph,refreshTime);
+	   
+	$( "#sliderMillis" ).slider({
+		value:1.5,
+		min: 0,
+		max: 60,
+		step: .5,
+		slide: function( event, ui ) {
+			$( "#millis" ).val( $( "#sliderMillis" ).slider( "value" ) + " segs." );
+			refreshTime=$( "#sliderMillis" ).slider( "value" ) * 1000;
+		}
+	});
+	$( "#millis" ).val( $( "#sliderMillis" ).slider( "value" ) + " segs.");
+
+	$( "#sliderPeriod" ).slider({
+		value: 5,
+		min: 1,
+		max: 60*24,
+		step: 1,
+		slide: function( event, ui ) {
+			$( "#period" ).val( $( "#sliderPeriod" ).slider( "value" ) + " mins." );
+			periodMins=$( "#sliderPeriod" ).slider( "value" );
+		}
+	});
+	$( "#period" ).val( $( "#sliderPeriod" ).slider( "value" ) + " mins.");
+	
+	$.each(graphsArray, function(index, value) { 
+		$("#cboGraphs").append('<option value='+index+'>'+value+'</option>'); 
+	});
+	
+	$("#cboGraphs").click(function(){
+		actualGraph=$('#cboGraphs option:selected').val();
+		console.log(actualGraph);
+		fnInitGraph();
+	});
+});
+</script>
+</head>
+<body>
+
+	<img id="graph" />
+	
+	<p>
+    	<label for="millis">Refrescar cada:</label>
+   		<input type="text" id="millis" style="border: 0; color: #f6931f; font-weight: bold;" />
+	</p>
+	<div id="sliderMillis" style="width: 450px"></div>
+	
+	<p>
+    	<label for="period">Ventana de tiempo:</label>
+   		<input type="text" id="period" style="border: 0; color: #f6931f; font-weight: bold;" />
+	</p>
+	<div id="sliderPeriod" style="width: 450px"></div>
+	
+	<p>
+    	<label for="cboGraphs">Gráfico:</label>
+   		<select id="cboGraphs"></select>
+	</p>
+	
+
+</body>
+</html>
